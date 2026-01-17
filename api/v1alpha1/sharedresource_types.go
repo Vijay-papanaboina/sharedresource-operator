@@ -118,10 +118,11 @@ type TargetSpec struct {
 // =============================================================================
 type SyncPolicySpec struct {
 	// Mode determines the sync strategy:
-	//   - "copy" (default): Sync all keys from source to target
+	//   - "copy" (default): Sync all keys from source to target, overwriting target
 	//   - "selective": Only sync keys specified in the Keys field
+	//   - "merge": Sync source keys to target, preserving extra keys in target
 	//
-	// +kubebuilder:validation:Enum=copy;selective
+	// +kubebuilder:validation:Enum=copy;selective;merge
 	// +kubebuilder:default=copy
 	// +optional
 	Mode SyncMode `json:"mode,omitempty"`
@@ -134,7 +135,7 @@ type SyncPolicySpec struct {
 }
 
 // SyncMode defines how data is copied during synchronization.
-// +kubebuilder:validation:Enum=copy;selective
+// +kubebuilder:validation:Enum=copy;selective;merge
 type SyncMode string
 
 const (
@@ -143,6 +144,9 @@ const (
 
 	// SyncModeSelective copies only specified keys from source to target
 	SyncModeSelective SyncMode = "selective"
+
+	// SyncModeMerge copies source keys to target while preserving extra keys in target
+	SyncModeMerge SyncMode = "merge"
 )
 
 // DeletionPolicy defines what happens to target resources when the SharedResource is deleted.

@@ -125,14 +125,17 @@ spec:
                     - enum:
                       - copy
                       - selective
+                      - merge
                     - enum:
                       - copy
                       - selective
+                      - merge
                     default: copy
                     description: |-
                       Mode determines the sync strategy:
-                        - "copy" (default): Sync all keys from source to target
+                        - "copy" (default): Sync all keys from source to target, overwriting target
                         - "selective": Only sync keys specified in the Keys field
+                        - "merge": Sync source keys to target, preserving extra keys in target
                     type: string
                 type: object
               targets:

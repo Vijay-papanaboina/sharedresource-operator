@@ -18,13 +18,14 @@ package controller
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	platformv1alpha1 "github.com/vijay-papanaboina/sharedresource-operator/api/v1alpha1"
 )
@@ -43,6 +44,18 @@ var _ = Describe("SharedResource Controller", func() {
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind SharedResource")
+			// Create source secret
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-source-secret",
+					Namespace: "default",
+				},
+				Data: map[string][]byte{
+					"key": []byte("value"),
+				},
+			}
+			Expect(k8sClient.Create(ctx, secret)).To(Succeed())
+
 			err := k8sClient.Get(ctx, typeNamespacedName, sharedresource)
 			if err != nil && errors.IsNotFound(err) {
 				resource := &platformv1alpha1.SharedResource{
@@ -56,7 +69,7 @@ var _ = Describe("SharedResource Controller", func() {
 							Name: "test-source-secret",
 						},
 						Targets: []platformv1alpha1.TargetSpec{
-							{Namespace: "default"},
+							{Namespace: "default", Name: "target-secret"},
 						},
 					},
 				}
@@ -72,20 +85,31 @@ var _ = Describe("SharedResource Controller", func() {
 
 			By("Cleanup the specific resource instance SharedResource")
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
+
+			By("Cleanup the source secret")
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-source-secret",
+					Namespace: "default",
+				},
+			}
+			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
-			controllerReconciler := &SharedResourceReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
 
-			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
+			// The controller is running in the background (started in suite_test.go),
+			// so we just need to wait for the reconciliation to happen.
+
+			targetSecret := &corev1.Secret{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, types.NamespacedName{
+					Name:      "target-secret",
+					Namespace: "default",
+				}, targetSecret)
+			}, time.Second*10, time.Millisecond*250).Should(Succeed())
+
+			Expect(targetSecret.Data["key"]).To(Equal([]byte("value")))
 		})
 	})
 })

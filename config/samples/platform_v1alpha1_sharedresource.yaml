@@ -1,0 +1,48 @@
+# =============================================================================
+# Example: Sync database credentials from security namespace to app namespaces
+#
+# Prerequisites:
+#   1. Create namespaces: kubectl create namespace security backend jobs
+#   2. Create source secret:
+#      kubectl create secret generic db-credentials -n security \
+#        --from-literal=username=admin \
+#        --from-literal=password=secret123
+#   3. Apply this SharedResource
+# =============================================================================
+apiVersion: platform.platform.dev/v1alpha1
+kind: SharedResource
+metadata:
+  name: sync-db-credentials
+  namespace: security # SharedResource lives alongside the source secret
+  labels:
+    app.kubernetes.io/name: sharedresource-operator
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  # Source: The Secret to sync (must be in same namespace as this CR)
+  source:
+    kind: Secret
+    name: db-credentials
+
+  # Targets: Namespaces to sync to
+  targets:
+    - namespace: backend
+    - namespace: jobs
+    # Example with rename:
+    # - namespace: analytics
+    #   name: database-creds
+
+  # SyncPolicy: How to copy data (optional, defaults to copy all)
+  syncPolicy:
+    mode: copy # "copy" (all keys) or "selective" (filter keys)
+    # For selective mode:
+    # keys:
+    #   include:
+    #     - username
+    #     - password
+    #   exclude:
+    #     - internal-metadata
+
+  # DeletionPolicy: What happens when this CR is deleted
+  # - "orphan" (default): Leave synced secrets in place
+  # - "delete": Delete synced secrets (use with caution!)
+  deletionPolicy: orphan

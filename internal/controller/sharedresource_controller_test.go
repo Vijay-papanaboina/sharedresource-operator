@@ -50,7 +50,15 @@ var _ = Describe("SharedResource Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: platformv1alpha1.SharedResourceSpec{
+						Source: platformv1alpha1.SourceSpec{
+							Kind: "Secret",
+							Name: "test-source-secret",
+						},
+						Targets: []platformv1alpha1.TargetSpec{
+							{Namespace: "default"},
+						},
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}

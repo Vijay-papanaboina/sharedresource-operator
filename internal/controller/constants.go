@@ -69,3 +69,11 @@ const (
 	// True = source exists, False = source not found
 	ConditionTypeSourceFound = "SourceFound"
 )
+
+// =============================================================================
+// Resource Kind constants to avoid magic strings.
+// =============================================================================
+const (
+	KindSecret    = "Secret"
+	KindConfigMap = "ConfigMap"
+)

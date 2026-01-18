@@ -41,11 +41,11 @@ var _ = Describe("Drift Correction", func() {
 		// Create namespaces
 		sourceNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: sourceNSName}}
 		Expect(k8sClient.Create(ctx, sourceNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, sourceNS)
+		defer func() { _ = k8sClient.Delete(ctx, sourceNS) }()
 
 		targetNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: targetNSName}}
 		Expect(k8sClient.Create(ctx, targetNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, targetNS)
+		defer func() { _ = k8sClient.Delete(ctx, targetNS) }()
 
 		// Create source
 		source := &corev1.Secret{
@@ -86,7 +86,10 @@ var _ = Describe("Drift Correction", func() {
 		// Wait for controller to detect and fix drift
 		Eventually(func() string {
 			freshTarget := &corev1.Secret{}
-			k8sClient.Get(ctx, types.NamespacedName{Name: "drift-secret", Namespace: targetNSName}, freshTarget)
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: "drift-secret", Namespace: targetNSName}, freshTarget)
+			if err != nil {
+				return ""
+			}
 			return string(freshTarget.Data["original"])
 		}, time.Second*10, time.Millisecond*250).Should(Equal("correct"))
 	})

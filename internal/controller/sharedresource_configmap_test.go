@@ -41,11 +41,11 @@ var _ = Describe("ConfigMap Sync", func() {
 		// Create namespaces
 		sourceNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: sourceNSName}}
 		Expect(k8sClient.Create(ctx, sourceNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, sourceNS)
+		defer func() { _ = k8sClient.Delete(ctx, sourceNS) }()
 
 		targetNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: targetNSName}}
 		Expect(k8sClient.Create(ctx, targetNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, targetNS)
+		defer func() { _ = k8sClient.Delete(ctx, targetNS) }()
 
 		// Create source ConfigMap
 		source := &corev1.ConfigMap{
@@ -92,19 +92,19 @@ var _ = Describe("Multi-Target Sync", func() {
 		// Create all namespaces
 		sourceNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: sourceNSName}}
 		Expect(k8sClient.Create(ctx, sourceNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, sourceNS)
+		defer func() { _ = k8sClient.Delete(ctx, sourceNS) }()
 
 		target1NS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: target1NSName}}
 		Expect(k8sClient.Create(ctx, target1NS)).To(Succeed())
-		defer k8sClient.Delete(ctx, target1NS)
+		defer func() { _ = k8sClient.Delete(ctx, target1NS) }()
 
 		target2NS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: target2NSName}}
 		Expect(k8sClient.Create(ctx, target2NS)).To(Succeed())
-		defer k8sClient.Delete(ctx, target2NS)
+		defer func() { _ = k8sClient.Delete(ctx, target2NS) }()
 
 		target3NS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: target3NSName}}
 		Expect(k8sClient.Create(ctx, target3NS)).To(Succeed())
-		defer k8sClient.Delete(ctx, target3NS)
+		defer func() { _ = k8sClient.Delete(ctx, target3NS) }()
 
 		// Create source
 		source := &corev1.Secret{

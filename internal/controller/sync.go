@@ -53,14 +53,14 @@ func (r *SharedResourceReconciler) fetchSourceResource(ctx context.Context, sr *
 	}
 
 	switch sr.Spec.Source.Kind {
-	case "Secret":
+	case KindSecret:
 		var secret corev1.Secret
 		if err := r.Get(ctx, sourceKey, &secret); err != nil {
 			return nil, "", err
 		}
 		return secret.Data, secret.Type, nil
 
-	case "ConfigMap":
+	case KindConfigMap:
 		var cm corev1.ConfigMap
 		if err := r.Get(ctx, sourceKey, &cm); err != nil {
 			return nil, "", err
@@ -113,10 +113,10 @@ func (r *SharedResourceReconciler) syncToTarget(
 	targetKey := types.NamespacedName{Namespace: targetNamespace, Name: targetName}
 
 	switch sr.Spec.Source.Kind {
-	case "Secret":
-		return r.syncSecret(ctx, targetKey, data, secretType, annotations, checksum, syncMode, log)
-	case "ConfigMap":
-		return r.syncConfigMap(ctx, targetKey, data, annotations, checksum, syncMode, log)
+	case KindSecret:
+		return r.syncSecret(ctx, targetKey, data, secretType, annotations, syncMode, log)
+	case KindConfigMap:
+		return r.syncConfigMap(ctx, targetKey, data, annotations, syncMode, log)
 	default:
 		return fmt.Errorf("unsupported source kind: %s", sr.Spec.Source.Kind)
 	}
@@ -133,7 +133,6 @@ func (r *SharedResourceReconciler) syncSecret(
 	data map[string][]byte,
 	secretType corev1.SecretType,
 	annotations map[string]string,
-	checksum string,
 	syncMode string,
 	log logr.Logger,
 ) error {
@@ -205,7 +204,6 @@ func (r *SharedResourceReconciler) syncConfigMap(
 	targetKey types.NamespacedName,
 	data map[string][]byte,
 	annotations map[string]string,
-	checksum string,
 	syncMode string,
 	log logr.Logger,
 ) error {
@@ -296,7 +294,7 @@ func (r *SharedResourceReconciler) deleteTargetResources(ctx context.Context, sr
 		targetKey := types.NamespacedName{Namespace: target.Namespace, Name: targetName}
 
 		switch sr.Spec.Source.Kind {
-		case "Secret":
+		case KindSecret:
 			var secret corev1.Secret
 			if err := r.Get(ctx, targetKey, &secret); err != nil {
 				if apierrors.IsNotFound(err) {
@@ -312,7 +310,7 @@ func (r *SharedResourceReconciler) deleteTargetResources(ctx context.Context, sr
 				}
 			}
 
-		case "ConfigMap":
+		case KindConfigMap:
 			var cm corev1.ConfigMap
 			if err := r.Get(ctx, targetKey, &cm); err != nil {
 				if apierrors.IsNotFound(err) {

@@ -41,11 +41,15 @@ var _ = Describe("Source Updates", func() {
 		// Create namespaces
 		sourceNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: sourceNSName}}
 		Expect(k8sClient.Create(ctx, sourceNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, sourceNS)
+		defer func(name string) {
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+		}(sourceNSName)
 
 		targetNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: targetNSName}}
 		Expect(k8sClient.Create(ctx, targetNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, targetNS)
+		defer func(name string) {
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+		}(targetNSName)
 
 		// Create source
 		source := &corev1.Secret{
@@ -84,7 +88,10 @@ var _ = Describe("Source Updates", func() {
 		// Wait for target to be updated
 		Eventually(func() string {
 			freshTarget := &corev1.Secret{}
-			k8sClient.Get(ctx, types.NamespacedName{Name: "update-secret", Namespace: targetNSName}, freshTarget)
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: "update-secret", Namespace: targetNSName}, freshTarget)
+			if err != nil {
+				return ""
+			}
 			return string(freshTarget.Data["key"])
 		}, time.Second*10, time.Millisecond*250).Should(Equal("updated"))
 	})
@@ -97,11 +104,15 @@ var _ = Describe("Source Updates", func() {
 		// Create namespaces
 		sourceNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: sourceNSName}}
 		Expect(k8sClient.Create(ctx, sourceNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, sourceNS)
+		defer func(name string) {
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+		}(sourceNSName)
 
 		targetNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: targetNSName}}
 		Expect(k8sClient.Create(ctx, targetNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, targetNS)
+		defer func(name string) {
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+		}(targetNSName)
 
 		// Create source with one key
 		source := &corev1.Secret{
@@ -139,7 +150,10 @@ var _ = Describe("Source Updates", func() {
 		// Wait for new key to appear in target
 		Eventually(func() bool {
 			freshTarget := &corev1.Secret{}
-			k8sClient.Get(ctx, types.NamespacedName{Name: "addkey-secret", Namespace: targetNSName}, freshTarget)
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: "addkey-secret", Namespace: targetNSName}, freshTarget)
+			if err != nil {
+				return false
+			}
 			_, exists := freshTarget.Data["newkey"]
 			return exists
 		}, time.Second*10, time.Millisecond*250).Should(BeTrue())
@@ -153,11 +167,15 @@ var _ = Describe("Source Updates", func() {
 		// Create namespaces
 		sourceNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: sourceNSName}}
 		Expect(k8sClient.Create(ctx, sourceNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, sourceNS)
+		defer func(name string) {
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+		}(sourceNSName)
 
 		targetNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: targetNSName}}
 		Expect(k8sClient.Create(ctx, targetNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, targetNS)
+		defer func(name string) {
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+		}(targetNSName)
 
 		// Create source with two keys
 		source := &corev1.Secret{
@@ -202,7 +220,10 @@ var _ = Describe("Source Updates", func() {
 		// Wait for key to be removed from target
 		Eventually(func() bool {
 			freshTarget := &corev1.Secret{}
-			k8sClient.Get(ctx, types.NamespacedName{Name: "rmkey-secret", Namespace: targetNSName}, freshTarget)
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: "rmkey-secret", Namespace: targetNSName}, freshTarget)
+			if err != nil {
+				return false
+			}
 			_, exists := freshTarget.Data["remove"]
 			return exists
 		}, time.Second*10, time.Millisecond*250).Should(BeFalse())
@@ -217,7 +238,9 @@ var _ = Describe("Source Updates", func() {
 		// Create namespaces
 		for _, ns := range []string{sourceNSName, target1NSName, target2NSName} {
 			Expect(k8sClient.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}})).To(Succeed())
-			defer k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}})
+			defer func(name string) {
+				_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+			}(ns)
 		}
 
 		// Create source
@@ -266,7 +289,9 @@ var _ = Describe("Source Updates", func() {
 		// Create namespaces
 		for _, ns := range []string{sourceNSName, targetNSName} {
 			Expect(k8sClient.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}})).To(Succeed())
-			defer k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}})
+			defer func(name string) {
+				_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+			}(ns)
 		}
 
 		// Create source
@@ -315,7 +340,9 @@ var _ = Describe("Source Updates", func() {
 		// Create namespaces
 		for _, ns := range []string{sourceNSName, targetNSName} {
 			Expect(k8sClient.Create(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}})).To(Succeed())
-			defer k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}})
+			defer func(name string) {
+				_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+			}(ns)
 		}
 
 		// Create source

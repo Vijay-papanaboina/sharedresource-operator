@@ -41,11 +41,15 @@ var _ = Describe("Edge Cases", func() {
 		// Create namespaces
 		sourceNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: sourceNSName}}
 		Expect(k8sClient.Create(ctx, sourceNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, sourceNS)
+		defer func(name string) {
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+		}(sourceNSName)
 
 		targetNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: targetNSName}}
 		Expect(k8sClient.Create(ctx, targetNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, targetNS)
+		defer func(name string) {
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+		}(targetNSName)
 
 		// Create TLS secret
 		source := &corev1.Secret{
@@ -86,11 +90,15 @@ var _ = Describe("Edge Cases", func() {
 		// Create namespaces
 		sourceNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: sourceNSName}}
 		Expect(k8sClient.Create(ctx, sourceNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, sourceNS)
+		defer func(name string) {
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+		}(sourceNSName)
 
 		targetNS := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: targetNSName}}
 		Expect(k8sClient.Create(ctx, targetNS)).To(Succeed())
-		defer k8sClient.Delete(ctx, targetNS)
+		defer func(name string) {
+			_ = k8sClient.Delete(ctx, &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}})
+		}(targetNSName)
 
 		// Create SharedResource WITHOUT creating source first
 		sr := &platformv1alpha1.SharedResource{

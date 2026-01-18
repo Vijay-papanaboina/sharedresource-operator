@@ -72,6 +72,8 @@ func filterData(data map[string][]byte, policy *platformv1alpha1.SyncPolicySpec)
 
 	// Selective mode - apply key filtering
 	if policy.Keys == nil {
+		// Warning: selective mode without keys specification returns all data
+		// This is likely a user configuration error
 		return data
 	}
 

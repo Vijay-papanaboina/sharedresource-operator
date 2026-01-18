@@ -175,7 +175,21 @@ func (r *SharedResourceReconciler) syncSecret(
 	// Check if update is needed by comparing actual data
 	existingDataChecksum := computeChecksum(existing.Data)
 	newDataChecksum := computeChecksum(targetData)
-	if existingDataChecksum == newDataChecksum {
+
+	// Always update annotations (e.g., last-synced timestamp)
+	annotationsChanged := false
+	if existing.Annotations == nil {
+		existing.Annotations = make(map[string]string)
+		annotationsChanged = true
+	}
+	for k, v := range annotations {
+		if existing.Annotations[k] != v {
+			existing.Annotations[k] = v
+			annotationsChanged = true
+		}
+	}
+
+	if existingDataChecksum == newDataChecksum && !annotationsChanged {
 		log.Info("Target Secret already up to date", "namespace", targetKey.Namespace, "name", targetKey.Name, "mode", syncMode)
 		return nil
 	}
@@ -259,7 +273,21 @@ func (r *SharedResourceReconciler) syncConfigMap(
 	}
 	existingDataChecksum := computeChecksum(existingByteData)
 	newDataChecksum := computeChecksum(targetByteData)
-	if existingDataChecksum == newDataChecksum {
+
+	// Always update annotations (e.g., last-synced timestamp)
+	annotationsChanged := false
+	if existing.Annotations == nil {
+		existing.Annotations = make(map[string]string)
+		annotationsChanged = true
+	}
+	for k, v := range annotations {
+		if existing.Annotations[k] != v {
+			existing.Annotations[k] = v
+			annotationsChanged = true
+		}
+	}
+
+	if existingDataChecksum == newDataChecksum && !annotationsChanged {
 		log.Info("Target ConfigMap already up to date", "namespace", targetKey.Namespace, "name", targetKey.Name, "mode", syncMode)
 		return nil
 	}

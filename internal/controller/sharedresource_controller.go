@@ -242,11 +242,27 @@ func (r *SharedResourceReconciler) updateStatus(
 	sr.Status.SyncedTargets = syncedTargets
 	sr.Status.SourceChecksum = checksum
 
+	// Count failed targets for Degraded condition
+	failedCount := 0
+	for _, t := range syncedTargets {
+		if !t.Synced {
+			failedCount++
+		}
+	}
+
 	if allSynced {
 		sr.Status.LastSyncTime = &now
 		setCondition(sr, ConditionTypeReady, metav1.ConditionTrue, "SyncSuccessful", "All targets synced successfully")
+		setCondition(sr, ConditionTypeDegraded, metav1.ConditionFalse, "AllTargetsSynced", "No targets failed")
+	} else if failedCount < len(syncedTargets) {
+		// Partial failure - some targets synced, some failed
+		setCondition(sr, ConditionTypeReady, metav1.ConditionFalse, "PartialSync", "Some targets failed to sync")
+		setCondition(sr, ConditionTypeDegraded, metav1.ConditionTrue, "PartialFailure",
+			fmt.Sprintf("%d of %d targets failed to sync", failedCount, len(syncedTargets)))
 	} else {
-		setCondition(sr, ConditionTypeReady, metav1.ConditionFalse, "SyncFailed", "Some targets failed to sync")
+		// All targets failed
+		setCondition(sr, ConditionTypeReady, metav1.ConditionFalse, "SyncFailed", "All targets failed to sync")
+		setCondition(sr, ConditionTypeDegraded, metav1.ConditionFalse, "AllTargetsFailed", "All targets failed, not degraded")
 	}
 
 	if err := r.Status().Update(ctx, sr); err != nil {
@@ -255,7 +271,9 @@ func (r *SharedResourceReconciler) updateStatus(
 	}
 
 	log.Info("Reconciliation complete", "allSynced", allSynced)
-	return ctrl.Result{}, nil
+
+	// Requeue periodically for drift detection (every 5 minutes)
+	return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
 }
 
 // =============================================================================

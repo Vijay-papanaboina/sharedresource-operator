@@ -68,6 +68,10 @@ const (
 	// ConditionTypeSourceFound indicates if source Secret/ConfigMap exists
 	// True = source exists, False = source not found
 	ConditionTypeSourceFound = "SourceFound"
+
+	// ConditionTypeDegraded indicates partial sync failure
+	// True = some (but not all) targets failed to sync
+	ConditionTypeDegraded = "Degraded"
 )
 
 // =============================================================================

@@ -1,0 +1,103 @@
+//go:build e2e
+// +build e2e
+
+/*
+Copyright 2026.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package e2e
+
+import (
+	"fmt"
+	"os/exec"
+	"time"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"github.com/vijay-papanaboina/sharedresource-operator/test/utils"
+)
+
+var _ = Describe("SharedResource Deletion Policy", Ordered, func() {
+	const (
+		sourceNS = "sr-delete-source"
+		targetNS = "sr-delete-target"
+	)
+
+	BeforeAll(func() {
+		By("creating test namespaces")
+		cmd := exec.Command("kubectl", "create", "ns", sourceNS)
+		_, _ = utils.Run(cmd)
+		cmd = exec.Command("kubectl", "create", "ns", targetNS)
+		_, _ = utils.Run(cmd)
+	})
+
+	AfterAll(func() {
+		By("cleaning up test namespaces")
+		cmd := exec.Command("kubectl", "delete", "ns", sourceNS, "--ignore-not-found")
+		_, _ = utils.Run(cmd)
+		cmd = exec.Command("kubectl", "delete", "ns", targetNS, "--ignore-not-found")
+		_, _ = utils.Run(cmd)
+	})
+
+	It("should delete target when deletionPolicy is delete", func() {
+		By("creating source Secret")
+		cmd := exec.Command("kubectl", "create", "secret", "generic", "delete-test-secret",
+			"-n", sourceNS,
+			"--from-literal=key=value")
+		_, err := utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("creating SharedResource CR with delete policy")
+		srYAML := fmt.Sprintf(`
+apiVersion: platform.platform.dev/v1alpha1
+kind: SharedResource
+metadata:
+  name: deletion-policy-test
+  namespace: %s
+spec:
+  source:
+    kind: Secret
+    name: delete-test-secret
+  targets:
+    - namespace: %s
+  deletionPolicy: delete
+`, sourceNS, targetNS)
+
+		cmd = exec.Command("kubectl", "apply", "-f", "-")
+		cmd.Stdin = stringReader(srYAML)
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("waiting for target Secret to be created")
+		Eventually(func() error {
+			cmd := exec.Command("kubectl", "get", "secret", "delete-test-secret", "-n", targetNS)
+			_, err := utils.Run(cmd)
+			return err
+		}, 60*time.Second, 2*time.Second).Should(Succeed())
+
+		By("deleting the SharedResource CR")
+		cmd = exec.Command("kubectl", "delete", "sharedresource", "deletion-policy-test", "-n", sourceNS)
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("verifying target Secret is deleted")
+		Eventually(func() bool {
+			cmd := exec.Command("kubectl", "get", "secret", "delete-test-secret", "-n", targetNS)
+			_, err := utils.Run(cmd)
+			return err != nil // Should fail because secret is deleted
+		}, 60*time.Second, 2*time.Second).Should(BeTrue())
+	})
+})

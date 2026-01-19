@@ -50,7 +50,7 @@ var _ = Describe("SharedResource Secret Sync", Ordered, func() {
 		By("waiting for controller to be ready")
 		Eventually(func() error {
 			cmd := exec.Command("kubectl", "get", "deployment", "-n", namespace,
-				"k8s-operator-controller-manager", "-o", "jsonpath={.status.readyReplicas}")
+				"sharedresource-operator-controller-manager", "-o", "jsonpath={.status.readyReplicas}")
 			output, err := utils.Run(cmd)
 			if err != nil {
 				return err

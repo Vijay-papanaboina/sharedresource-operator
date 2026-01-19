@@ -429,20 +429,29 @@ Open in VS Code with Dev Containers extension for a pre-configured environment w
 
 ---
 
-## Distribution
+## Installation
 
-### Single YAML Bundle
-
-Build an all-in-one installer:
+Install the operator in your cluster:
 
 ```bash
-make build-installer IMG=<your-registry>/sharedresource-operator:v0.1.0
+kubectl apply -f https://github.com/Vijay-papanaboina/sharedresource-operator/releases/download/v0.1.0/install.yaml
 ```
 
-Users can install with:
+---
+
+## Building from Source
+
+For maintainers or those who want to customize:
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/<org>/k8s-operator/<tag>/dist/install.yaml
+# Build and push your own image
+make docker-build docker-push IMG=<your-registry>/sharedresource-operator:v0.1.0
+
+# Generate the install.yaml with your image
+make build-installer IMG=<your-registry>/sharedresource-operator:v0.1.0
+
+# Deploy your custom bundle
+kubectl apply -f dist/install.yaml
 ```
 
 ---

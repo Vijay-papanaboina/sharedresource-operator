@@ -37,8 +37,32 @@ var _ = Describe("SharedResource Secret Sync", Ordered, func() {
 	)
 
 	BeforeAll(func() {
+		By("installing CRDs")
+		cmd := exec.Command("make", "install")
+		_, err := utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to install CRDs")
+
+		By("deploying the controller-manager")
+		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", projectImage))
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
+
+		By("waiting for controller to be ready")
+		Eventually(func() error {
+			cmd := exec.Command("kubectl", "get", "deployment", "-n", namespace,
+				"k8s-operator-controller-manager", "-o", "jsonpath={.status.readyReplicas}")
+			output, err := utils.Run(cmd)
+			if err != nil {
+				return err
+			}
+			if output != "1" {
+				return fmt.Errorf("controller not ready yet")
+			}
+			return nil
+		}, 120*time.Second, 2*time.Second).Should(Succeed())
+
 		By("creating test namespaces")
-		cmd := exec.Command("kubectl", "create", "ns", sourceNS)
+		cmd = exec.Command("kubectl", "create", "ns", sourceNS)
 		_, _ = utils.Run(cmd)
 		cmd = exec.Command("kubectl", "create", "ns", targetNS)
 		_, _ = utils.Run(cmd)
@@ -49,6 +73,14 @@ var _ = Describe("SharedResource Secret Sync", Ordered, func() {
 		cmd := exec.Command("kubectl", "delete", "ns", sourceNS, "--ignore-not-found")
 		_, _ = utils.Run(cmd)
 		cmd = exec.Command("kubectl", "delete", "ns", targetNS, "--ignore-not-found")
+		_, _ = utils.Run(cmd)
+
+		By("undeploying the controller-manager")
+		cmd = exec.Command("make", "undeploy")
+		_, _ = utils.Run(cmd)
+
+		By("uninstalling CRDs")
+		cmd = exec.Command("make", "uninstall")
 		_, _ = utils.Run(cmd)
 	})
 

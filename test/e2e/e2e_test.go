@@ -52,10 +52,15 @@ var _ = Describe("Manager", Ordered, func() {
 	// enforce the restricted security policy to the namespace, installing CRDs,
 	// and deploying the controller.
 	BeforeAll(func() {
-		By("creating manager namespace")
-		cmd := exec.Command("kubectl", "create", "ns", namespace)
+		By("creating manager namespace if it doesn't exist")
+		cmd := exec.Command("kubectl", "get", "ns", namespace)
 		_, err := utils.Run(cmd)
-		Expect(err).NotTo(HaveOccurred(), "Failed to create namespace")
+		if err != nil {
+			// Namespace doesn't exist, create it
+			cmd = exec.Command("kubectl", "create", "ns", namespace)
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create namespace")
+		}
 
 		By("labeling the namespace to enforce the restricted security policy")
 		cmd = exec.Command("kubectl", "label", "--overwrite", "ns", namespace,
@@ -63,15 +68,25 @@ var _ = Describe("Manager", Ordered, func() {
 		_, err = utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to label namespace with restricted policy")
 
-		By("installing CRDs")
-		cmd = exec.Command("make", "install")
+		By("checking if CRDs are already installed")
+		cmd = exec.Command("kubectl", "get", "crd", "sharedresources.platform.platform.dev")
 		_, err = utils.Run(cmd)
-		Expect(err).NotTo(HaveOccurred(), "Failed to install CRDs")
+		if err != nil {
+			By("installing CRDs")
+			cmd = exec.Command("make", "install")
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "Failed to install CRDs")
+		}
 
-		By("deploying the controller-manager")
-		cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", projectImage))
+		By("checking if controller-manager is already deployed")
+		cmd = exec.Command("kubectl", "get", "deployment", "-n", namespace, "k8s-operator-controller-manager")
 		_, err = utils.Run(cmd)
-		Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
+		if err != nil {
+			By("deploying the controller-manager")
+			cmd = exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", projectImage))
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
+		}
 	})
 
 	// After all tests have been executed, clean up by undeploying the controller, uninstalling CRDs,

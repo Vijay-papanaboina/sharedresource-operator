@@ -1,6 +1,8 @@
 #!/bin/bash
 set -x
 
+apt update && apt upgrade
+
 curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-$(go env GOARCH)
 chmod +x ./kind
 mv ./kind /usr/local/bin/kind

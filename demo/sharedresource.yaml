@@ -1,0 +1,14 @@
+apiVersion: platform.platform.dev/v1alpha1
+kind: SharedResource
+metadata:
+  name: db-credentials
+  namespace: shared-resources
+spec:
+  source:
+    kind: Secret
+    name: db-credentials
+  targets:
+    - namespace: app-namespace
+  syncPolicy:
+    mode: copy
+  deletionPolicy: delete

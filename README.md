@@ -281,26 +281,36 @@ status:
 ### Reconciliation Flow
 
 ```mermaid
-flowchart TD
-    A[Event: CR/Secret/ConfigMap Changed] --> B[Fetch SharedResource CR]
-    B --> C{CR Found?}
-    C -->|No| D[Return - Nothing to do]
-    C -->|Yes| E{Being Deleted?}
-    E -->|Yes| F[handleDeletion]
-    F --> G{Policy = delete?}
-    G -->|Yes| H[Delete target resources]
-    G -->|No| I[Orphan targets]
-    H --> J[Remove Finalizer]
+---
+config:
+  layout: fixed
+  theme: base
+  look: neo
+---
+flowchart TB
+    A["Event: CR/Secret/ConfigMap Changed"] --> B["Fetch SharedResource CR"]
+    B --> C{"CR Found?"}
+    C -- No --> D["Return - Nothing to do"]
+    C -- Yes --> E{"Being Deleted?"}
+    E -- Yes --> F["handleDeletion"]
+    F --> G{"Policy = delete?"}
+    G -- Yes --> H["Delete target resources"]
+    G -- No --> I["Orphan targets"]
+    H --> J["Remove Finalizer"]
     I --> J
-    E -->|No| K{Has Finalizer?}
-    K -->|No| L[Add Finalizer + Requeue]
-    K -->|Yes| M[Fetch Source Resource]
-    M --> N{Source Found?}
-    N -->|No| O[Set SourceNotFound + Requeue 30s]
-    N -->|Yes| P[Filter Data by SyncPolicy]
-    P --> Q[Compute Checksum]
-    Q --> R[Sync All Targets]
-    R --> S[Update Status Conditions]
+    E -- No --> K{"Has Finalizer?"}
+    K -- No --> L["Add Finalizer + Requeue"]
+    K -- Yes --> M["Fetch Source Resource"]
+    M --> N{"Source Found?"}
+    N -- No --> O["Set SourceNotFound + Requeue 30s"]
+    N -- Yes --> P["Filter Data by SyncPolicy"]
+    P --> Q["Compute Checksum"]
+    Q --> R["Reconcile Targets (idempotent)"]
+    R --> T{"Changes Needed?"}
+    T -- Yes --> U["Apply Updates"]
+    T -- No --> V["No-op"]
+    U --> S["Update Status Conditions"]
+    V --> S
 ```
 
 ### Watch Strategy
